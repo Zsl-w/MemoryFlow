@@ -1,0 +1,28 @@
+.container {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.item {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* 响应式调整 */
+@media (max-width: 640px) {
+  .container {
+    flex-direction: column;
+  }
+  
+  .column {
+    width: 100%;
+  }
+}
