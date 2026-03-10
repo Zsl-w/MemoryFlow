@@ -27,9 +27,9 @@ export default function Waterfall({
     if (!containerRef.current) return 1
     
     const containerWidth = containerRef.current.offsetWidth
-    const numColumns = Math.max(1, Math.floor(containerWidth / columnWidth))
+    const numColumns = Math.max(1, Math.floor((containerWidth + gap) / (columnWidth + gap)))
     return numColumns
-  }, [columnWidth])
+  }, [columnWidth, gap])
   
   // 重新分配卡片到各列
   const redistributeItems = useCallback(() => {
@@ -38,12 +38,13 @@ export default function Waterfall({
     const newHeights: number[] = Array(numColumns).fill(0)
     
     // 将每个子元素分配到最短的列
-    children.forEach((child) => {
+    children.forEach((child, index) => {
       // 找到最短的列
       const minHeightIndex = newHeights.indexOf(Math.min(...newHeights))
       newColumns[minHeightIndex].push(child)
-      // 估算高度（实际高度需要渲染后才能确定）
-      newHeights[minHeightIndex] += 320 // 平均卡片高度
+      // 估算高度：使用传入的高度或根据索引动态调整
+      const estimatedHeight = 280 + (index % 3) * 60 // 280-400px 动态估算
+      newHeights[minHeightIndex] += estimatedHeight + gap
     })
     
     setColumns(newColumns)

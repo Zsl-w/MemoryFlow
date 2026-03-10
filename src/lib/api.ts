@@ -14,7 +14,7 @@ export async function getAllSeries() {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data as Series[]
+  return (data || []) as Series[]
 }
 
 // 根据筛选条件获取系列
@@ -37,7 +37,7 @@ export async function getSeriesByFilter(tags?: string[], searchQuery?: string) {
   const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
-  return data as Series[]
+  return (data || []) as Series[]
 }
 
 // 根据 ID 获取系列详情
@@ -100,7 +100,7 @@ export async function getPhotosBySeriesId(seriesId: string) {
     .order('order', { ascending: true })
 
   if (error) throw error
-  return data as Photo[]
+  return (data || []) as Photo[]
 }
 
 // 创建照片
@@ -180,8 +180,8 @@ export async function getAllTags() {
 
   // 提取所有唯一标签
   const tagsSet = new Set<string>()
-  data.forEach(item => {
-    item.tags.forEach((tag: string) => tagsSet.add(tag))
+  data?.forEach(item => {
+    item.tags?.forEach((tag: string) => tagsSet.add(tag))
   })
 
   return Array.from(tagsSet).sort()

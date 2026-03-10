@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header/Header'
 import { createSeries, createPhotos, updateSeriesPhotoCount } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import styles from './UploadPage.module.css'
+
+const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+const MAX_FILES = 50 // 最多50张
 
 export default function UploadPage() {
   const navigate = useNavigate()
@@ -12,8 +15,16 @@ export default function UploadPage() {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+
+  // 组件卸载时清理所有预览 URL
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [])
   
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && tagInput.trim()) {
@@ -33,12 +44,36 @@ export default function UploadPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
-      setFiles([...files, ...newFiles])
+
+      // 检查文件数量限制
+      if (files.length + newFiles.length > MAX_FILES) {
+        alert(`最多只能上传 ${MAX_FILES} 张照片`)
+        return
+      }
+
+      // 过滤超大文件并创建预览 URL
+      const validFiles: File[] = []
+      const newUrls: string[] = []
+
+      newFiles.forEach(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          alert(`文件 "${file.name}" 超过 20MB 限制，已跳过`)
+          return
+        }
+        validFiles.push(file)
+        newUrls.push(URL.createObjectURL(file))
+      })
+
+      setFiles(prev => [...prev, ...validFiles])
+      setPreviewUrls(prev => [...prev, ...newUrls])
     }
   }
-  
+
   const handleRemoveFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index))
+    // 释放对应的预览 URL
+    URL.revokeObjectURL(previewUrls[index])
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index))
+    setFiles(prev => prev.filter((_, i) => i !== index))
   }
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -223,7 +258,7 @@ export default function UploadPage() {
                   {files.map((file, index) => (
                     <div key={index} className={styles.previewItem}>
                       <img
-                        src={URL.createObjectURL(file)}
+                        src={previewUrls[index]}
                         alt={`预览 ${index + 1}`}
                         className={styles.previewImage}
                       />
