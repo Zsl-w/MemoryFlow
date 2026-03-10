@@ -28,12 +28,6 @@
   opacity: 0.6;
 }
 
-.link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-
 .imageWrapper {
   position: relative;
   width: 100%;

@@ -3,8 +3,9 @@ import Header from '../components/Header/Header'
 import Filter from '../components/Filter/Filter'
 import Waterfall from '../components/Waterfall/Waterfall'
 import SeriesCard from '../components/SeriesCard/SeriesCard'
-import type { Series, FilterState } from '../types'
-import { getSeriesByFilter, getAllTags } from '../lib/api'
+import Lightbox from '../components/Lightbox/Lightbox'
+import type { Series, Photo, FilterState } from '../types'
+import { getSeriesByFilter, getAllTags, getPhotosBySeriesId } from '../lib/api'
 import styles from './HomePage.module.css'
 
 export default function HomePage() {
@@ -17,6 +18,12 @@ export default function HomePage() {
   const [availableTags, setAvailableTags] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // 系列预览状态
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [selectedSeries, setSelectedSeries] = useState<Series | null>(null)
+  const [seriesPhotos, setSeriesPhotos] = useState<Photo[]>([])
+  const [loadingPhotos, setLoadingPhotos] = useState(false)
   
   // 加载初始数据
   useEffect(() => {
@@ -61,6 +68,48 @@ export default function HomePage() {
     }
   }
   
+  // 打开系列预览
+  const openSeriesPreview = async (seriesItem: Series) => {
+    setSelectedSeries(seriesItem)
+    setPreviewOpen(true)
+    setLoadingPhotos(true)
+    
+    try {
+      const photos = await getPhotosBySeriesId(seriesItem.id)
+      // 如果照片数组为空，使用封面作为 fallback
+      if (!photos || photos.length === 0) {
+        setSeriesPhotos([{
+          id: 'cover',
+          image: seriesItem.cover_image,
+          order: 0,
+          album_id: seriesItem.id,
+          created_at: seriesItem.created_at
+        }])
+      } else {
+        setSeriesPhotos(photos)
+      }
+    } catch (err) {
+      console.error('加载照片失败:', err)
+      // 如果没有照片，至少显示封面
+      setSeriesPhotos([{
+        id: 'cover',
+        image: seriesItem.cover_image,
+        order: 0,
+        album_id: seriesItem.id,
+        created_at: seriesItem.created_at
+      }])
+    } finally {
+      setLoadingPhotos(false)
+    }
+  }
+  
+  // 关闭预览
+  const closePreview = () => {
+    setPreviewOpen(false)
+    setSelectedSeries(null)
+    setSeriesPhotos([])
+  }
+  
   return (
     <div className={styles.page}>
       <Header />
@@ -93,7 +142,12 @@ export default function HomePage() {
           {!loading && !error && series.length > 0 ? (
             <Waterfall gap={24} columnWidth={280}>
               {series.map((seriesItem, index) => (
-                <SeriesCard key={seriesItem.id} series={seriesItem} index={index} />
+                <SeriesCard 
+                  key={seriesItem.id} 
+                  series={seriesItem} 
+                  index={index}
+                  onClick={() => openSeriesPreview(seriesItem)}
+                />
               ))}
             </Waterfall>
           ) : !loading && !error && series.length === 0 ? (
@@ -103,6 +157,14 @@ export default function HomePage() {
           ) : null}
         </div>
       </main>
+      
+      {/* 系列照片预览组件 */}
+      <Lightbox
+        series={selectedSeries}
+        photos={seriesPhotos}
+        isOpen={previewOpen}
+        onClose={closePreview}
+      />
     </div>
   )
 }
